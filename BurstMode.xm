@@ -11,6 +11,7 @@
 - (void)_updatePreviewWellImage:(id)image;
 - (void)_setOverlayControlsEnabled:(BOOL)enabled;
 - (void)_setFlashMode:(int)mode;
+- (void)_clearFocusViews;
 - (void)_setBottomBarEnabled:(BOOL)enabled;
 - (void)setCameraButtonsEnabled:(BOOL)enabled;
 - (void)takePictureOpenIrisAnimationFinished;
@@ -266,44 +267,37 @@ static void BurstModeLoader()
 
 %hook PLCameraView
 
-%new
-- (void)burstForPLCameraView
-{
-	[PLCameraView cancelPreviousPerformRequestsWithTarget:self selector:@selector(_handleVolumeButtonDown) object:nil];
-	UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
-	for (id object in bottomButtonBar.subviews) {
-		if ([object isKindOfClass:[PLCameraButton class]]) {
-			[(PLCameraButton *)object burst];
-			break;
-		}
-	}
-}
-
 - (void)_handleVolumeButtonUp
 {
+	%orig;
 	if (isPhotoCamera) {
 		if (BurstMode) {
-			hideCounter();
-			invalidateTimer();
-			cleanup();
+			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
+			for (id object in bottomButtonBar.subviews) {
+				if ([object isKindOfClass:[PLCameraButton class]]) {
+					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchUpInside];
+					break;
+				}
+			}
 		}
 	}
-	%orig;
 }
 
 - (void)_handleVolumeButtonDown
 {
 	if (isPhotoCamera) {
 		if (BurstMode) {
-			BMHoldTimer = [NSTimer scheduledTimerWithTimeInterval:HoldTime target:self selector:@selector(burstForPLCameraView) userInfo:nil repeats:NO];
-			[BMHoldTimer retain];
-			dispatch_after(dispatch_time(DISPATCH_TIME_NOW, HoldTime*1.02*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
-				if (!burst)
-					%orig;
-			});
+			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
+			for (id object in bottomButtonBar.subviews) {
+				if ([object isKindOfClass:[PLCameraButton class]]) {
+					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchDown];
+					break;
+				}
+			}
 		} else
 			%orig;
-	}
+	} else
+		%orig;
 }
 
 - (void)_shutterButtonClicked
@@ -380,16 +374,13 @@ static void BurstModeLoader()
 
 - (void)openIrisWithDidFinishSelector:(SEL)openIrisWith withDuration:(float)duration
 {
-	%log;
 	if (BurstMode) {
 		if (isPhotoCamera && DisableIris && disableIris && burst && !isCapturingVideo) {
-			[self resumePreview];
 			[self hideStaticClosedIris];
 			[self takePictureOpenIrisAnimationFinished];
 			return;
 		}
 		%orig;
-		cleanup();
 		return;
 	}
 	%orig;
@@ -397,10 +388,9 @@ static void BurstModeLoader()
 
 - (void)closeIrisWithDidFinishSelector:(SEL)closeIrisWith withDuration:(float)duration
 {
-	%log;
 	if (BurstMode) {
 		if (isPhotoCamera && DisableIris && disableIris && burst && !isCapturingVideo) {
-			[self resumePreview];
+			[self _clearFocusViews];
 			return;
 		}
 		%orig;
