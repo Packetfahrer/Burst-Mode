@@ -16,10 +16,7 @@ if (![self specifierForID:spec.identifier] && [value boolValue]) \
 	[self insertSpecifier:spec afterSpecifierID:afterSpecName animated:YES]; \
 else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 	[self removeSpecifierID:spec.identifier animated:YES];
-				
-@interface PSListController (BurstMode)
-- (void)viewDidUnload;
-@end
+
 
 @interface BurstModePreferenceController : PSListController {
 	PSSpecifier *_burstModeSpec;
