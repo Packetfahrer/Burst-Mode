@@ -1,5 +1,4 @@
 #import <UIKit/UIKit.h>
-#import <substrate.h>
 
 @interface PLCameraView : UIView
 - (BOOL)hasInFlightCaptures;
@@ -73,7 +72,7 @@ static NSTimer* BMHoldTimer;
 static UIView *counterBG = nil;
 static UILabel *counter = nil;
 
-static int photoCount = 0;
+static unsigned int photoCount = 0;
 
 static void hideCounter()
 {
@@ -88,7 +87,7 @@ static void hideCounter()
 				[counterBG setHidden:YES];
 				[counter setText:@"000"];
         	}];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.1*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.3*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
         	burst = NO;
         });
 		photoCount = 0;
@@ -110,7 +109,7 @@ static void invalidateTimer()
 
 static void cleanup()
 {
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.1*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.25*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
 		if (!isCapturingVideo) {
 			[[cont delegate] _setBottomBarEnabled:YES];
 			[[cont delegate] _setOverlayControlsEnabled:YES];
@@ -124,7 +123,7 @@ static void cleanup()
 			[cont setFaceDetectionEnabled:YES];
 	});
 	noAutofocus = NO;
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 1.3*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.65*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
 		disableIris = NO;
 	});
 }
@@ -275,7 +274,7 @@ static void BurstModeLoader()
 			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
 			for (id object in bottomButtonBar.subviews) {
 				if ([object isKindOfClass:[PLCameraButton class]]) {
-					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchUpInside];
+					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchUpOutside];
 					break;
 				}
 			}
@@ -306,7 +305,6 @@ static void BurstModeLoader()
 		if (isPhotoCamera) {
 			if (ignoreCapture) {
 				ignoreCapture = NO;
-				cleanup();
 				return;
 			}
 		}
@@ -361,10 +359,8 @@ static void BurstModeLoader()
 {
 	if (BurstMode) {
 		if (isPhotoCamera && !isCapturingVideo) {
-			if (DisableAnim) { 
-				[self resumePreview];
+			if (DisableAnim)
 				return;
-			}
 			%orig;
 			return;
 		}
@@ -391,6 +387,7 @@ static void BurstModeLoader()
 	if (BurstMode) {
 		if (isPhotoCamera && DisableIris && disableIris && burst && !isCapturingVideo) {
 			[self _clearFocusViews];
+			[self resumePreview];
 			return;
 		}
 		%orig;
