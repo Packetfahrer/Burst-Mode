@@ -65,6 +65,7 @@ static BOOL noAutofocus = NO;
 static float previousBacklightLevel;
 static float Interval;
 static float HoldTime;
+static unsigned int limitedPhotosCount;
 
 static NSTimer* BMPressTimer;
 static NSTimer* BMHoldTimer;
@@ -78,7 +79,7 @@ static void hideCounter()
 {
 	if (burst) {
 		counterAnimate = YES;
-		[UIView animateWithDuration:1.2f delay:0.0f options:0
+		[UIView animateWithDuration:0.9f delay:0.0f options:0
             animations:^{
     			counterBG.alpha = 0.0f;
     			counter.alpha = 0.0f;
@@ -162,6 +163,8 @@ static void BurstModeLoader()
 	readOption(LiveWellEnabled, LiveWell, NO)
 	readOption(AllowFlashEnabled, AllowFlash, NO)
 	readOption(AllowHDREnabled, AllowHDR, NO)
+	id PLC = [dict objectForKey:@"PhotoLimitCount"];
+	limitedPhotosCount = PLC ? [PLC intValue] : 0;
 	id HTValue = [dict objectForKey:@"HoldTime"];
 	HoldTime = HTValue ? [HTValue floatValue] : 1.2f;
 	id IntervalValue = [dict objectForKey:@"Interval"];
@@ -176,8 +179,7 @@ static void BurstModeLoader()
 	if (self) {
 		if (BurstMode) {
 			[self addTarget:self action:@selector(sendPressed) forControlEvents:UIControlEventTouchDown];
-			[self addTarget:self action:@selector(sendReleased) forControlEvents:UIControlEventTouchUpInside];
-			[self addTarget:self action:@selector(sendCancelled) forControlEvents:UIControlEventTouchUpOutside | UIControlEventTouchCancel];
+			[self addTarget:self action:@selector(sendReleased) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel | UIControlEventTouchDragExit];
 		}
 	}
 	return self;
@@ -216,7 +218,8 @@ static void BurstModeLoader()
 		[counterBG setHidden:NO];
 		counter.alpha = 1.0f;
 		counterBG.alpha = 0.4f;
-		previousBacklightLevel = [UIScreen mainScreen].brightness;
+		if (hasFrontFlash)
+			previousBacklightLevel = [UIScreen mainScreen].brightness;
 		disableIris = DisableIris;
 		[PLCameraView cancelPreviousPerformRequestsWithTarget:self selector:@selector(autofocus) object:nil];
 		if ([cont isFocusLockSupported] && noAutofocus)
@@ -236,26 +239,14 @@ static void BurstModeLoader()
 }
 
 %new
-- (void)sendCancelled
-{
-	if (isPhotoCamera) {
-		if (BurstMode) {
-			invalidateTimer();
-			cleanup();
-			FrontFlashCleanup();
-   			hideCounter();
-   		}
-	}
-}
-
-%new
 - (void)sendReleased
 {
 	if (isPhotoCamera) {
 		if (BurstMode) {
 			invalidateTimer();
 			ignoreCapture = burst;
-			cleanup();
+			if (burst)
+				cleanup();
    			FrontFlashCleanup();
     		hideCounter();
     	}
@@ -274,7 +265,7 @@ static void BurstModeLoader()
 			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
 			for (id object in bottomButtonBar.subviews) {
 				if ([object isKindOfClass:[PLCameraButton class]]) {
-					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchUpOutside];
+					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchUpInside];
 					break;
 				}
 			}
@@ -427,11 +418,10 @@ static void BurstModeLoader()
 		if (isPhotoCamera) {
 			if (burst) {
 				photoCount++;
-				/*if (photoCount > limitedPhotosCount) {
-					invalidateTimer();
-					hideCounter();
-					return;
-				}*/
+				if (limitedPhotosCount > 0) {
+					if (photoCount == limitedPhotosCount)
+						invalidateTimer();
+				}
 				char cString[25];
         		sprintf(cString, "%d", photoCount);
 				NSString *s = [[[NSString alloc] initWithUTF8String:cString] autorelease];
