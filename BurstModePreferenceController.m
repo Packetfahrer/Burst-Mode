@@ -20,6 +20,7 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 
 @interface BurstModePreferenceController : PSListController {
 	PSSpecifier *_burstModeSpec;
+	PSSpecifier *_limitSpec;
 	PSSpecifier *_spaceSpec;
 	PSSpecifier *_holdTimeSliderSpec;
 	PSSpecifier *_space2Spec;
@@ -34,6 +35,7 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 	PSSpecifier *_descriptionSpec;
 }
 @property (nonatomic, retain) PSSpecifier *burstModeSpec;
+@property (nonatomic, retain) PSSpecifier *limitSpec;
 @property (nonatomic, retain) PSSpecifier *spaceSpec;
 @property (nonatomic, retain) PSSpecifier *holdTimeSliderSpec;
 @property (nonatomic, retain) PSSpecifier *space2Spec;
@@ -51,6 +53,7 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 @implementation BurstModePreferenceController
 
 @synthesize burstModeSpec = _burstModeSpec;
+@synthesize limitSpec = _limitSpec;
 @synthesize spaceSpec = _spaceSpec;
 @synthesize holdTimeSliderSpec = _holdTimeSliderSpec;
 @synthesize space2Spec = _space2Spec;
@@ -63,6 +66,26 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 @synthesize allowFlashSpec = _allowFlashSpec;
 @synthesize allowHDRSpec = _allowHDRSpec;
 @synthesize descriptionSpec = _descriptionSpec;
+
+- (void)hideKeyboard
+{
+	[[super view] endEditing:YES];
+}
+
+- (void)addBtn
+{
+	UIBarButtonItem *hideKBBtn = [[UIBarButtonItem alloc]
+        initWithTitle:@"Hide KB" style:UIBarButtonItemStyleBordered
+        target:self action:@selector(hideKeyboard)];
+	((UINavigationItem *)[super navigationItem]).rightBarButtonItem = hideKBBtn;
+	[hideKBBtn release];
+}
+
+- (void)viewWillAppear:(BOOL)animated
+{
+	[super viewWillAppear:animated];
+	[self addBtn];
+}
 
 - (void)viewDidUnload
 {
@@ -78,8 +101,9 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 {
 	orig
 	
-	AddSpecBeforeSpec(self.spaceSpec, @"BurstMode")
-	AddSpecBeforeSpec(self.holdTimeSliderSpec, @"Space")
+	AddSpecBeforeSpec(self.limitSpec, @"BurstMode")
+	AddSpecBeforeSpec(self.spaceSpec, @"PLC")
+	AddSpecBeforeSpec(self.holdTimeSliderSpec, @"PLC")
 	AddSpecBeforeSpec(self.space2Spec, @"HoldTimeSlider")
 	AddSpecBeforeSpec(self.intervalSliderSpec, @"Space2")
 	AddSpecBeforeSpec(self.burstModeSafeSpec, @"IntervalSlider")
@@ -127,6 +151,8 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 		for (PSSpecifier *spec in specs) {
 			if ([Id isEqualToString:@"BurstMode"])
                 self.burstModeSpec = spec;
+            if ([Id isEqualToString:@"PLC"])
+                self.limitSpec = spec;
             if ([Id isEqualToString:@"Space"])
                 self.spaceSpec = spec;
             if ([Id isEqualToString:@"HoldTimeSlider"])
@@ -154,6 +180,7 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
         	}
         
         	if (![[dict objectForKey:@"BurstModeEnabled"] boolValue]) {
+        		[specs removeObject:self.limitSpec];
         		[specs removeObject:self.spaceSpec];
         		[specs removeObject:self.holdTimeSliderSpec];
         		[specs removeObject:self.space2Spec];
