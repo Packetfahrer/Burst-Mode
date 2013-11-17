@@ -41,8 +41,6 @@
 
 #define cont [%c(PLCameraController) sharedInstance]
 #define isCapturingVideo [cont isCapturingVideo]
-#define COUNTER_SIZE 56.0f
-#define COUNTER_TEXT_WIDTH 60.0f
 
 static BOOL BurstMode;
 static BOOL BurstModeSafe;
@@ -164,7 +162,7 @@ static void BurstModeLoader()
 	readOption(AllowFlashEnabled, AllowFlash, NO)
 	readOption(AllowHDREnabled, AllowHDR, NO)
 	id PLC = [dict objectForKey:@"PhotoLimitCount"];
-	limitedPhotosCount = PLC ? [PLC intValue] : 0;
+	limitedPhotosCount = PLC ? [PLC intValue] : 999;
 	id HTValue = [dict objectForKey:@"HoldTime"];
 	HoldTime = HTValue ? [HTValue floatValue] : 1.2f;
 	id IntervalValue = [dict objectForKey:@"Interval"];
@@ -324,25 +322,26 @@ static void BurstModeLoader()
 	%orig;
 	if (BurstMode) {
 		if (!counter) {
-			counterBG = [[UIView alloc] initWithFrame:CGRectMake(-COUNTER_SIZE/2, -COUNTER_SIZE/2-20.0f, COUNTER_SIZE, COUNTER_SIZE)];
-			counter = [[UILabel alloc] initWithFrame:CGRectMake(0.0f, 0.0f, COUNTER_TEXT_WIDTH, 20.0f)];
-			counterBG.alpha = 0.4f;
-			counterBG.backgroundColor = [UIColor blackColor];
-			counterBG.layer.cornerRadius = COUNTER_SIZE/2;
+			counter = [[UILabel alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 60.0f, 20.0f)];
 			counter.text = @"000";
 			[counter setFont:[UIFont fontWithName:@"HelveticaNeue" size:20.0f]];
 			counter.textColor = [UIColor whiteColor];
 			counter.backgroundColor = [UIColor clearColor];
 			[counter setAutoresizingMask:2];
-			
-			UIView *textOverlayView = MSHookIvar<UIView *>(self, "_textOverlayView");
 			[counter setHidden:YES];
-			[counterBG setHidden:YES];
-			[counterBG addSubview:counter];
-			counter.center = CGPointMake(COUNTER_SIZE/2, COUNTER_SIZE/2);
-			counter.textAlignment = UITextAlignmentCenter;
-			[textOverlayView addSubview:counterBG];
 		}
+		if (!counterBG) {
+			counterBG = [[UIView alloc] initWithFrame:CGRectMake(-28.0f, -48.0f, 56.0f, 56.0f)];
+			counterBG.alpha = 0.4f;
+			counterBG.backgroundColor = [UIColor blackColor];
+			counterBG.layer.cornerRadius = 28.0f;
+			[counterBG setHidden:YES];
+		}
+		UIView *textOverlayView = MSHookIvar<UIView *>(self, "_textOverlayView");
+		[counterBG addSubview:counter];
+		counter.center = CGPointMake(28.0f, 28.0f);
+		counter.textAlignment = UITextAlignmentCenter;
+		[textOverlayView addSubview:counterBG];
 	}
 }
 
@@ -405,9 +404,9 @@ static void BurstModeLoader()
 	if (BurstMode) {
 		if (isPhotoCamera) {
 			if (enabled)
-				counterBG.frame = CGRectMake(0.0f, -COUNTER_SIZE/2-35.0f, COUNTER_SIZE, COUNTER_SIZE);
+				counterBG.frame = CGRectMake(0.0f, -63.0f, 56.0f, 56.0f);
 			else
-				counterBG.frame = CGRectMake(-COUNTER_SIZE/2, -COUNTER_SIZE/2-20.0f, COUNTER_SIZE, COUNTER_SIZE);
+				counterBG.frame = CGRectMake(-28.0f, -48.0f, 56.0f, 56.0f);
 		}
 	}
 }
