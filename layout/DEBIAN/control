@@ -1,7 +1,7 @@
 Package: org.thebigboss.burstmode
 Name: Burst Mode
 Depends: mobilesubstrate, preferenceloader, firmware (>= 5.0), firmware (<< 7.0), gsc.still-camera | gsc.front-facing-camera
-Version: 1.0
+Version: 1.1
 Architecture: iphoneos-arm
 Description: iOS 7 Burst Mode-like photo capture for iOS 5 & 6
 Author: PoomSmart
