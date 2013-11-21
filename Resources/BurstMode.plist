@@ -47,7 +47,7 @@
 		<key>detail</key>
 		<string>PSDetailController</string>
 		<key>default</key>
-		<string>999</string>
+		<string></string>
 		<key>defaults</key>
 		<string>com.PS.BurstMode</string>
 		<key>id</key>
@@ -135,7 +135,7 @@
         <key>cell</key>
         <string>PSSwitchCell</string>
         <key>default</key>
-        <false/>
+        <true/>
         <key>defaults</key>
         <string>com.PS.BurstMode</string>
         <key>key</key>

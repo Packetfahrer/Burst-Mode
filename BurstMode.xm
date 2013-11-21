@@ -155,14 +155,14 @@ static void BurstModeLoader()
 		name = prename ? [prename boolValue] : defaultValue;
 		
 	readOption(BurstModeEnabled, BurstMode, NO)
-	readOption(BurstModeSafeEnabled, BurstModeSafe, NO)
+	readOption(BurstModeSafeEnabled, BurstModeSafe, YES)
 	readOption(DisableIrisEnabled, DisableIris, NO)
 	readOption(DisableAnimEnabled, DisableAnim, NO)
 	readOption(LiveWellEnabled, LiveWell, NO)
 	readOption(AllowFlashEnabled, AllowFlash, NO)
 	readOption(AllowHDREnabled, AllowHDR, NO)
 	id PLC = [dict objectForKey:@"PhotoLimitCount"];
-	limitedPhotosCount = PLC ? [PLC intValue] : 999;
+	limitedPhotosCount = PLC ? [PLC intValue] : 0;
 	id HTValue = [dict objectForKey:@"HoldTime"];
 	HoldTime = HTValue ? [HTValue floatValue] : 1.2f;
 	id IntervalValue = [dict objectForKey:@"Interval"];
