@@ -103,7 +103,7 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 	
 	AddSpecBeforeSpec(self.limitSpec, @"BurstMode")
 	AddSpecBeforeSpec(self.spaceSpec, @"PLC")
-	AddSpecBeforeSpec(self.holdTimeSliderSpec, @"PLC")
+	AddSpecBeforeSpec(self.holdTimeSliderSpec, @"Space")
 	AddSpecBeforeSpec(self.space2Spec, @"HoldTimeSlider")
 	AddSpecBeforeSpec(self.intervalSliderSpec, @"Space2")
 	AddSpecBeforeSpec(self.burstModeSafeSpec, @"IntervalSlider")
