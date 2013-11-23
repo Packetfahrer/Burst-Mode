@@ -151,16 +151,15 @@ static void BurstModeLoader()
 {
 	NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:@"/var/mobile/Library/Preferences/com.PS.BurstMode.plist"];
 	#define readOption(prename, name, defaultValue) \
-		id prename = [dict objectForKey:[NSString stringWithUTF8String:#prename]]; \
-		name = prename ? [prename boolValue] : defaultValue;
+		name = [dict objectForKey:prename] ? [[dict objectForKey:prename] boolValue] : defaultValue;
 		
-	readOption(BurstModeEnabled, BurstMode, NO)
-	readOption(BurstModeSafeEnabled, BurstModeSafe, YES)
-	readOption(DisableIrisEnabled, DisableIris, NO)
-	readOption(DisableAnimEnabled, DisableAnim, NO)
-	readOption(LiveWellEnabled, LiveWell, NO)
-	readOption(AllowFlashEnabled, AllowFlash, NO)
-	readOption(AllowHDREnabled, AllowHDR, NO)
+	readOption(@"BurstModeEnabled", BurstMode, NO)
+	readOption(@"BurstModeSafeEnabled", BurstModeSafe, YES)
+	readOption(@"DisableIrisEnabled", DisableIris, NO)
+	readOption(@"DisableAnimEnabled", DisableAnim, NO)
+	readOption(@"LiveWellEnabled", LiveWell, NO)
+	readOption(@"AllowFlashEnabled", AllowFlash, NO)
+	readOption(@"AllowHDREnabled", AllowHDR, NO)
 	id PLC = [dict objectForKey:@"PhotoLimitCount"];
 	limitedPhotosCount = PLC ? [PLC intValue] : 0;
 	id HTValue = [dict objectForKey:@"HoldTime"];
@@ -421,7 +420,7 @@ static void BurstModeLoader()
 					if (photoCount == limitedPhotosCount)
 						invalidateTimer();
 				}
-				char cString[25];
+				char cString[5];
         		sprintf(cString, "%d", photoCount);
 				NSString *s = [[[NSString alloc] initWithUTF8String:cString] autorelease];
 				if (photoCount <= 9)
