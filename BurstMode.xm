@@ -346,7 +346,7 @@ static void BurstModeLoader()
 - (void)_setupAnimatePreviewDown:(id)down flipImage:(BOOL)image panoImage:(BOOL)image3 snapshotFrame:(CGRect)frame
 {
 	if (BurstMode) {
-		if (isPhotoCamera && !isCapturingVideo) {
+		if (isPhotoCamera && !isCapturingVideo && burst) {
 			if (DisableAnim)
 				return;
 			%orig;
