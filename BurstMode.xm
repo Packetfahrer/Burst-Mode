@@ -242,8 +242,7 @@ static void BurstModeLoader()
 		if (BurstMode) {
 			invalidateTimer();
 			ignoreCapture = burst;
-			if (burst)
-				cleanup();
+			cleanup();
    			FrontFlashCleanup();
     		hideCounter();
     	}
