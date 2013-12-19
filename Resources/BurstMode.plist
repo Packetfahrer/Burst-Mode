@@ -20,6 +20,8 @@
       	<string>PSGroupCell</string>
       	<key>label</key>
         <string>Burst Mode</string>
+        <key>id</key>
+        <string>first</string>
       </dict>
       <dict>
         <key>cell</key>
