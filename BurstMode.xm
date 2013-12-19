@@ -1,5 +1,7 @@
 #import <UIKit/UIKit.h>
 
+#define isiOS7 (kCFCoreFoundationVersionNumber > 793.00)
+
 @interface PLCameraView : UIView
 - (BOOL)hasInFlightCaptures;
 - (void)_shutterButtonClicked;
@@ -38,6 +40,8 @@
 @interface UIApplication (FrontFlash)
 - (void)setBacklightLevel:(float)level;
 @end
+
+%group iOS6
 
 #define cont [%c(PLCameraController) sharedInstance]
 #define isCapturingVideo [cont isCapturingVideo]
@@ -465,20 +469,39 @@ static void BurstModeLoader()
 
 %end
 
-
 static void PostNotification(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
 {
 	BurstModeLoader();
 }
 
+%end
+
+%group iOS7
+
+%hook PLCameraController
+
+- (BOOL)supportsAvalancheForDevice:(int)device
+{
+	return YES;
+}
+
+%end
+
+%end
+
+
 %ctor {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	hasFrontFlash = NO;
-	void *openFrontFlash = dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY);
-	if (openFrontFlash != NULL)
-		hasFrontFlash = YES;
-	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("com.PS.BurstMode.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-	BurstModeLoader();
-	%init;
+	if (isiOS7)
+		%init(iOS7);
+	else {
+		hasFrontFlash = NO;
+		void *openFrontFlash = dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY);
+		if (openFrontFlash != NULL)
+			hasFrontFlash = YES;
+		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("com.PS.BurstMode.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+		BurstModeLoader();
+		%init(iOS6);
+	}
 	[pool drain];
 }
