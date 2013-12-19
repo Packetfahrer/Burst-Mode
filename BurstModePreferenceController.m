@@ -1,7 +1,9 @@
 #import <UIKit/UIKit.h>
 #import <Preferences/PSListController.h>
 #import <Preferences/PSSpecifier.h>
+#import <Preferences/PSTableCell.h>
 
+#define isiOS7 (kCFCoreFoundationVersionNumber > 793.00)
 #define PREF_PATH @"/var/mobile/Library/Preferences/com.PS.BurstMode.plist"
 #define LoadPlist NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:PREF_PATH];
 #define PLIST_PATH @"/Library/PreferenceBundles/BurstModeSettings.bundle/BurstMode.plist"
@@ -19,21 +21,23 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 
 
 @interface BurstModePreferenceController : PSListController {
-	PSSpecifier *_burstModeSpec;
-	PSSpecifier *_limitSpec;
-	PSSpecifier *_spaceSpec;
-	PSSpecifier *_holdTimeSliderSpec;
-	PSSpecifier *_space2Spec;
-	PSSpecifier *_intervalSliderSpec;
-	PSSpecifier *_burstModeSafeSpec;
-	PSSpecifier *_miscSpec;
-	PSSpecifier *_disableIrisSpec;
-	PSSpecifier *_disableAnimSpec;
-	PSSpecifier *_liveWellSpec;
-	PSSpecifier *_allowFlashSpec;
-	PSSpecifier *_allowHDRSpec;
-	PSSpecifier *_descriptionSpec;
+	PSSpecifier *firstSpec;
+	PSSpecifier *burstModeSpec;
+	PSSpecifier *limitSpec;
+	PSSpecifier *spaceSpec;
+	PSSpecifier *holdTimeSliderSpec;
+	PSSpecifier *space2Spec;
+	PSSpecifier *intervalSliderSpec;
+	PSSpecifier *burstModeSafeSpec;
+	PSSpecifier *miscSpec;
+	PSSpecifier *disableIrisSpec;
+	PSSpecifier *disableAnimSpec;
+	PSSpecifier *liveWellSpec;
+	PSSpecifier *allowFlashSpec;
+	PSSpecifier *allowHDRSpec;
+	PSSpecifier *descriptionSpec;
 }
+@property (nonatomic, retain) PSSpecifier *firstSpec;
 @property (nonatomic, retain) PSSpecifier *burstModeSpec;
 @property (nonatomic, retain) PSSpecifier *limitSpec;
 @property (nonatomic, retain) PSSpecifier *spaceSpec;
@@ -52,20 +56,21 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 
 @implementation BurstModePreferenceController
 
-@synthesize burstModeSpec = _burstModeSpec;
-@synthesize limitSpec = _limitSpec;
-@synthesize spaceSpec = _spaceSpec;
-@synthesize holdTimeSliderSpec = _holdTimeSliderSpec;
-@synthesize space2Spec = _space2Spec;
-@synthesize intervalSliderSpec = _intervalSliderSpec;
-@synthesize burstModeSafeSpec = _burstModeSafeSpec;
-@synthesize miscSpec = _miscSpec;
-@synthesize disableIrisSpec = _disableIrisSpec;
-@synthesize disableAnimSpec = _disableAnimSpec;
-@synthesize liveWellSpec = _liveWellSpec;
-@synthesize allowFlashSpec = _allowFlashSpec;
-@synthesize allowHDRSpec = _allowHDRSpec;
-@synthesize descriptionSpec = _descriptionSpec;
+@synthesize firstSpec;
+@synthesize burstModeSpec;
+@synthesize limitSpec;
+@synthesize spaceSpec;
+@synthesize holdTimeSliderSpec;
+@synthesize space2Spec;
+@synthesize intervalSliderSpec;
+@synthesize burstModeSafeSpec;
+@synthesize miscSpec;
+@synthesize disableIrisSpec;
+@synthesize disableAnimSpec;
+@synthesize liveWellSpec;
+@synthesize allowFlashSpec;
+@synthesize allowHDRSpec;
+@synthesize descriptionSpec;
 
 - (void)hideKeyboard
 {
@@ -84,15 +89,18 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 - (void)viewWillAppear:(BOOL)animated
 {
 	[super viewWillAppear:animated];
-	[self addBtn];
+	if (!isiOS7)
+		[self addBtn];
 }
 
 - (void)viewDidUnload
 {
-	NSMutableArray *specs = [NSMutableArray arrayWithArray:[self loadSpecifiersFromPlistName:@"BurstMode" target:self]];
-	for (PSSpecifier *spec in specs) {
-		if ([Id length] > 0)
-		spec = nil;
+	if (!isiOS7) {
+		NSMutableArray *specs = [NSMutableArray arrayWithArray:[self loadSpecifiersFromPlistName:@"BurstMode" target:self]];
+		for (PSSpecifier *spec in specs) {
+			if ([Id length] > 0)
+			spec = nil;
+		}
 	}
     [super viewDidUnload];
 }
@@ -149,6 +157,8 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 		LoadPlist
 		
 		for (PSSpecifier *spec in specs) {
+			if ([Id isEqualToString:@"first"])
+                self.firstSpec = spec;
 			if ([Id isEqualToString:@"BurstMode"])
                 self.burstModeSpec = spec;
             if ([Id isEqualToString:@"PLC"])
@@ -178,8 +188,13 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
             if ([Id isEqualToString:@"Description"])
             	self.descriptionSpec = spec;
         	}
-        
-        	if (![[dict objectForKey:@"BurstModeEnabled"] boolValue]) {
+       		
+       		[self.spaceSpec setProperty:[NSString stringWithFormat:@"Delay: %.2f s", [dict objectForKey:@"HoldTime"] ? [[dict objectForKey:@"HoldTime"] floatValue] : 1.2f] forKey:@"footerText"];
+			[self reloadSpecifier:self.spaceSpec animated:NO];
+       		[self.space2Spec setProperty:[NSString stringWithFormat:@"Interval: %.2f s", [dict objectForKey:@"Interval"] ? [[dict objectForKey:@"Interval"] floatValue] : .8f] forKey:@"footerText"];
+			[self reloadSpecifier:self.space2Spec animated:NO];
+			
+			if (![[dict objectForKey:@"BurstModeEnabled"] boolValue] || isiOS7) {
         		[specs removeObject:self.limitSpec];
         		[specs removeObject:self.spaceSpec];
         		[specs removeObject:self.holdTimeSliderSpec];
@@ -195,10 +210,11 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
        			[specs removeObject:self.descriptionSpec];
        		}
        		
-       		[self.spaceSpec setProperty:[NSString stringWithFormat:@"Delay: %.2f s", [dict objectForKey:@"HoldTime"] ? [[dict objectForKey:@"HoldTime"] floatValue] : 1.2f] forKey:@"footerText"];
-			[self reloadSpecifier:self.spaceSpec animated:NO];
-       		[self.space2Spec setProperty:[NSString stringWithFormat:@"Interval: %.2f s", [dict objectForKey:@"Interval"] ? [[dict objectForKey:@"Interval"] floatValue] : .8f] forKey:@"footerText"];
-			[self reloadSpecifier:self.space2Spec animated:NO];
+       		if (isiOS7) {
+       			[specs removeObject:self.burstModeSpec];
+       			[self.firstSpec setProperty:@"Preferences is not needed for iOS 7" forKey:@"footerText"];
+       			[self reloadSpecifier:self.firstSpec animated:NO];
+       		}
         
         	_specifiers = [specs copy];
  	}
