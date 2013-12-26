@@ -264,7 +264,7 @@ static void BurstModeLoader()
 		if (BurstMode) {
 			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
 			for (id object in bottomButtonBar.subviews) {
-				if ([object isKindOfClass:[PLCameraButton class]]) {
+				if ([object class] == objc_getClass("PLCameraButton")) {
 					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchUpInside];
 					break;
 				}
@@ -279,7 +279,7 @@ static void BurstModeLoader()
 		if (BurstMode) {
 			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
 			for (id object in bottomButtonBar.subviews) {
-				if ([object isKindOfClass:[PLCameraButton class]]) {
+				if ([object class] == objc_getClass("PLCameraButton")) {
 					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchDown];
 					break;
 				}
@@ -400,9 +400,9 @@ static void BurstModeLoader()
 	%orig;
 }
 
-- (void)setHDREnabled:(BOOL)enabled
+- (BOOL)isHDREnabled
 {
-	%orig;
+	BOOL enabled = %orig;
 	if (BurstMode) {
 		if (isPhotoCamera) {
 			if (enabled)
@@ -411,6 +411,7 @@ static void BurstModeLoader()
 				counterBG.frame = CGRectMake(-28.0f, -48.0f, 56.0f, 56.0f);
 		}
 	}
+	return enabled;
 }
 
 - (void)capturePhoto
@@ -423,7 +424,7 @@ static void BurstModeLoader()
 					if (photoCount == limitedPhotosCount)
 						invalidateTimer();
 				}
-				char cString[5];
+				char cString[4];
         		sprintf(cString, "%d", photoCount);
 				NSString *s = [[[NSString alloc] initWithUTF8String:cString] autorelease];
 				if (photoCount <= 9)
@@ -477,6 +478,15 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 %end
 
 %group iOS7
+
+%hook CAMCameraSpec
+
+- (BOOL)shouldCreateAvalancheIndicator
+{
+	return YES;
+}
+
+%end
 
 %hook PLCameraController
 
