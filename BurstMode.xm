@@ -2,7 +2,15 @@
 
 #define isiOS7 (kCFCoreFoundationVersionNumber > 793.00)
 
+@interface PLCameraButton : UIButton
+@end
+
+@interface PLCameraButtonBar : UIToolbar
+@property(retain, nonatomic) PLCameraButton* cameraButton;
+@end
+
 @interface PLCameraView : UIView
+@property(retain, nonatomic) UIToolbar* bottomButtonBar;
 - (BOOL)hasInFlightCaptures;
 - (void)_shutterButtonClicked;
 - (void)setHDRIsOn:(BOOL)on;
@@ -16,9 +24,6 @@
 - (void)_setBottomBarEnabled:(BOOL)enabled;
 - (void)setCameraButtonsEnabled:(BOOL)enabled;
 - (void)takePictureOpenIrisAnimationFinished;
-@end
-
-@interface PLCameraButton : UIButton
 @end
 
 @interface PLCameraButton (BurstMode)
@@ -261,30 +266,17 @@ static void BurstModeLoader()
 {
 	%orig;
 	if (isPhotoCamera) {
-		if (BurstMode) {
-			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
-			for (id object in bottomButtonBar.subviews) {
-				if ([object class] == objc_getClass("PLCameraButton")) {
-					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchUpInside];
-					break;
-				}
-			}
-		}
+		if (BurstMode)
+			[(PLCameraButton *)[(PLCameraButtonBar *)self.bottomButtonBar cameraButton] sendActionsForControlEvents:UIControlEventTouchUpInside];
 	}
 }
 
 - (void)_handleVolumeButtonDown
 {
 	if (isPhotoCamera) {
-		if (BurstMode) {
-			UIToolbar *bottomButtonBar = MSHookIvar<UIToolbar *>(self, "_bottomButtonBar");
-			for (id object in bottomButtonBar.subviews) {
-				if ([object class] == objc_getClass("PLCameraButton")) {
-					[(PLCameraButton *)object sendActionsForControlEvents:UIControlEventTouchDown];
-					break;
-				}
-			}
-		} else
+		if (BurstMode)
+			[(PLCameraButton *)[(PLCameraButtonBar *)self.bottomButtonBar cameraButton] sendActionsForControlEvents:UIControlEventTouchDown];
+		else
 			%orig;
 	} else
 		%orig;
@@ -479,6 +471,15 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 
 %group iOS7
 
+%hook PUPhotoBrowserControllerPadSpec
+
+- (id)avalancheReviewControllerSpec
+{
+	return [[%c(PUAvalancheReviewControllerPhoneSpec) alloc] autorelease];
+}
+
+%end
+
 %hook CAMCameraSpec
 
 - (BOOL)shouldCreateAvalancheIndicator
@@ -502,8 +503,9 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 
 %ctor {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-	if (isiOS7)
+	if (isiOS7) {
 		%init(iOS7);
+	}
 	else {
 		hasFrontFlash = NO;
 		void *openFrontFlash = dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY);
