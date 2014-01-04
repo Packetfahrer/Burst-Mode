@@ -212,7 +212,7 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
        		
        		if (isiOS7) {
        			[specs removeObject:self.burstModeSpec];
-       			[self.firstSpec setProperty:@"Preferences is not needed for iOS 7" forKey:@"footerText"];
+       			[self.firstSpec setProperty:@"Preferences is not needed for iOS 7\n\nThe tweak will enable iPhone 5s\' Burst Mode style for your device. (With photos count indicator & faster performance)\n\nThere\'s an issue for iPad, you may temporary fix them by forcing iPhone UI for Camera app because Apple didn't design Burst Mode to be functional on iPad, I\'m working on this.\n\n© 2013 - 2014 Thuchapol Unprasert\n(@PoomSmart)" forKey:@"footerText"];
        			[self reloadSpecifier:self.firstSpec animated:NO];
        		}
         
