@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 
 #define isiOS7 (kCFCoreFoundationVersionNumber > 793.00)
+#define IPAD (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
 
 @interface PLCameraButton : UIButton
 @end
@@ -469,13 +470,55 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 
 %end
 
-%group iOS7
+%group iOS7iPad
+
+@interface PUAvalancheReviewControllerPhoneSpec : NSObject
+@end
+
+@interface PUPhotoBrowserController
+- (id)_toolbarButtonForIdentifier:(NSString *)ident;
+@end
 
 %hook PUPhotoBrowserControllerPadSpec
 
 - (id)avalancheReviewControllerSpec
 {
-	return [[%c(PUAvalancheReviewControllerPhoneSpec) alloc] autorelease];
+	return [[[PUAvalancheReviewControllerPhoneSpec alloc] init] autorelease];
+}
+
+%end
+
+%hook PUPhotoBrowserController
+
+- (id)_navbarButtonForIdentifier:(NSString *)ident
+{
+	if ([ident isEqualToString:@"PUPHOTOBROWSER_BUTTON_REVIEW"])
+		return [self _toolbarButtonForIdentifier:ident];
+	return %orig;
+
+}
+
+%end
+
+%end
+
+%group iOS7
+
+%hook CAMAvalancheIndicatorView
+
+- (void)_updateCountLabelWithNumberOfPhotos
+{
+	int photoCount = MSHookIvar<int>(self, "__numberOfPhotos");
+	UILabel *label = MSHookIvar<UILabel *>(self, "__countLabel");
+	char cString[4];
+    sprintf(cString, "%d", photoCount);
+	NSString *s = [[[NSString alloc] initWithUTF8String:cString] autorelease];
+	if (photoCount <= 9)
+		[label setText:[@"00" stringByAppendingString:s]];
+	else if (photoCount >= 10 && photoCount <= 99)
+		[label setText:[@"0" stringByAppendingString:s]];
+	else if (photoCount >= 100)
+		[label setText:s];
 }
 
 %end
@@ -505,6 +548,9 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	if (isiOS7) {
 		%init(iOS7);
+		if (IPAD) {
+			%init(iOS7iPad);
+		}
 	}
 	else {
 		hasFrontFlash = NO;
