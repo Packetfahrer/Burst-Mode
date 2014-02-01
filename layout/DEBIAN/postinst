@@ -1,0 +1,6 @@
+#!/bin/bash
+
+if [ ! -d "/System/Library/PrivateFrameworks/PhysicsKit.framework" ];then
+	rm -f /Library/MobileSubstrate/DynamicLibraries/BurstModePad7*
+	rm -rf /System/Library/PrivateFrameworks/PhotosUI.framework
+fi

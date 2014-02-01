@@ -3,10 +3,14 @@ ARCHS = armv7 armv7s arm64
 
 include theos/makefiles/common.mk
 
-TWEAK_NAME = BurstMode
+TWEAK_NAME = BurstMode BurstModePad7
 BurstMode_FILES = BurstMode.xm
 BurstMode_FRAMEWORKS = UIKit
-BurstMode_PRIVATE_FRAMEWORKS = GraphicsServices PhotoLibrary PhotosUI
+BurstMode_PRIVATE_FRAMEWORKS = GraphicsServices PhotoLibrary
+
+BurstModePad7_FILES = BurstModePad7.xm
+BurstModePad7_FRAMEWORKS = UIKit
+BurstModePad7_PRIVATE_FRAMEWORKS = PhotosUI
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 

@@ -1,51 +1,4 @@
-#import <UIKit/UIKit.h>
-
-#define isiOS7 (kCFCoreFoundationVersionNumber > 793.00)
-#define IPAD (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
-
-@interface PLCameraButton : UIButton
-@end
-
-@interface PLCameraButtonBar : UIToolbar
-@property(retain, nonatomic) PLCameraButton* cameraButton;
-@end
-
-@interface PLCameraView : UIView
-@property(retain, nonatomic) UIToolbar* bottomButtonBar;
-- (BOOL)hasInFlightCaptures;
-- (void)_shutterButtonClicked;
-- (void)setHDRIsOn:(BOOL)on;
-- (void)resumePreview;
-- (void)_setShouldShowFocus:(BOOL)focus;
-- (void)hideStaticClosedIris;
-- (void)_updatePreviewWellImage:(id)image;
-- (void)_setOverlayControlsEnabled:(BOOL)enabled;
-- (void)_setFlashMode:(int)mode;
-- (void)_clearFocusViews;
-- (void)_setBottomBarEnabled:(BOOL)enabled;
-- (void)setCameraButtonsEnabled:(BOOL)enabled;
-- (void)takePictureOpenIrisAnimationFinished;
-@end
-
-@interface PLCameraButton (BurstMode)
-- (void)burst;
-- (void)takePhoto;
-@end
-
-@interface PLCameraController : NSObject
-@property(assign, nonatomic, getter=isHDREnabled) BOOL HDREnabled;
-+ (id)sharedInstance;
-- (PLCameraView *)delegate;
-- (BOOL)isCapturingVideo;
-- (BOOL)isFocusLockSupported;
-- (void)setFaceDetectionEnabled:(BOOL)enabled;
-- (void)setFocusDisabled:(BOOL)disabled;
-- (void)_lockFocus:(BOOL)focus lockExposure:(BOOL)exposure lockWhiteBalance:(BOOL)whiteBalance;
-@end
-
-@interface UIApplication (FrontFlash)
-- (void)setBacklightLevel:(float)level;
-@end
+#import "BurstMode.h"
 
 %group iOS6
 
@@ -470,41 +423,9 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 
 %end
 
-%group iOS7iPad
-
-@interface PUAvalancheReviewControllerPhoneSpec : NSObject
-@end
-
-@interface PUPhotoBrowserController
-- (id)_toolbarButtonForIdentifier:(NSString *)ident;
-@end
-
-%hook PUPhotoBrowserControllerPadSpec
-
-- (id)avalancheReviewControllerSpec
-{
-	return [[[PUAvalancheReviewControllerPhoneSpec alloc] init] autorelease];
-}
-
-%end
-
-%hook PUPhotoBrowserController
-
-- (id)_navbarButtonForIdentifier:(NSString *)ident
-{
-	if ([ident isEqualToString:@"PUPHOTOBROWSER_BUTTON_REVIEW"])
-		return [self _toolbarButtonForIdentifier:ident];
-	return %orig;
-
-}
-
-%end
-
-%end
-
 %group iOS7
 
-%hook CAMAvalancheIndicatorView
+/*%hook CAMAvalancheIndicatorView
 
 - (void)_updateCountLabelWithNumberOfPhotos
 {
@@ -521,7 +442,7 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 		[label setText:s];
 }
 
-%end
+%end*/
 
 %hook CAMCameraSpec
 
@@ -532,14 +453,15 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 
 %end
 
-%hook PLCameraController
-
-- (BOOL)supportsAvalancheForDevice:(int)device
+Boolean (*old_MGGetBoolAnswer)(CFStringRef);
+Boolean replaced_MGGetBoolAnswer(CFStringRef string)
 {
-	return YES;
+	#define k(key) CFEqual(string, CFSTR(key))
+	if (k("RearFacingCameraBurstCapability") || k("FrontFacingCameraBurstCapability"))
+		return YES;
+	return old_MGGetBoolAnswer(string);
 }
 
-%end
 
 %end
 
@@ -547,12 +469,14 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 %ctor {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 	if (isiOS7) {
+		MSHookFunction(((BOOL *)MSFindSymbol(NULL, "_MGGetBoolAnswer")), (BOOL *)replaced_MGGetBoolAnswer, (BOOL **)&old_MGGetBoolAnswer);
 		%init(iOS7);
-		if (IPAD) {
-			%init(iOS7iPad);
-		}
 	}
 	else {
+		if ([[[NSBundle mainBundle] bundleIdentifier] isEqualToString:@"com.apple.Preferences"]) {
+			[pool drain];
+			return;
+		}
 		hasFrontFlash = NO;
 		void *openFrontFlash = dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY);
 		if (openFrontFlash != NULL)
