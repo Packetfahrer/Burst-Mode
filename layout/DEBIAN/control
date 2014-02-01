@@ -4,7 +4,7 @@ Depends: mobilesubstrate, preferenceloader, firmware (>= 5.0), gsc.still-camera 
 Conflicts: cy+model.iphone (>= 6)
 Version: 1.1
 Architecture: iphoneos-arm
-Description: iOS 7 Burst Mode-like photo capture for iOS 5 & 6 + Enable Native Burst Mode in iOS 7 for unsupported devices
+Description: iOS 7 Burst Mode-like photo capture for iOS 5 & 6 + enable Native Burst Mode in iOS 7 for unsupported devices
 Author: PoomSmart
 Section: Tweaks
 Icon: file:///Library/PreferenceBundles/BurstModeSettings.bundle/BurstMode@2x.png
