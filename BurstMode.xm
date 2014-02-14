@@ -1,32 +1,57 @@
 #import "BurstMode.h"
 
+static BOOL BurstMode;
+static BOOL AllowFlash;
+static BOOL AllowHDR;
+static BOOL expFormat;
+static BOOL hasFrontFlash = NO;
+static BOOL isFrontCamera = NO;
+static unsigned int limitedPhotosCount;
+
+static float previousBacklightLevel;
+
+static void FrontFlashCleanup()
+{
+	if (hasFrontFlash && isFrontCamera) {
+		for (UIView *view in [UIApplication sharedApplication].keyWindow.subviews) {
+			if (view.tag == 9596) {
+				[UIView animateWithDuration:.45 delay:0 options:0
+                animations:^{
+    				view.alpha = 0;
+            	}
+        		completion:^(BOOL finished) {
+        			if (finished) {
+						[view removeFromSuperview];
+						[view release];
+						[[UIApplication sharedApplication] setBacklightLevel:previousBacklightLevel];
+						GSEventSetBacklightLevel(previousBacklightLevel);
+					}
+        		}];
+			}
+		}
+	}
+}
+
 %group iOS6
 
 #define cont [%c(PLCameraController) sharedInstance]
 #define isCapturingVideo [cont isCapturingVideo]
 
-static BOOL BurstMode;
 static BOOL BurstModeSafe;
 static BOOL DisableIris;
 static BOOL DisableAnim;
 static BOOL LiveWell;
-static BOOL AllowFlash;
-static BOOL AllowHDR;
 
 static BOOL isPhotoCamera = NO;
-static BOOL isFrontCamera = NO;
 static BOOL isBackCamera = NO;
-static BOOL hasFrontFlash = NO;
 static BOOL disableIris = NO;
 static BOOL burst = NO;
 static BOOL counterAnimate = NO;
 static BOOL ignoreCapture = NO;
 static BOOL noAutofocus = NO;
 
-static float previousBacklightLevel;
 static float Interval;
 static float HoldTime;
-static unsigned int limitedPhotosCount;
 
 static NSTimer* BMPressTimer;
 static NSTimer* BMHoldTimer;
@@ -40,16 +65,16 @@ static void hideCounter()
 {
 	if (burst) {
 		counterAnimate = YES;
-		[UIView animateWithDuration:0.9f delay:0.0f options:0
+		[UIView animateWithDuration:.9 delay:0 options:0
             animations:^{
-    			counterBG.alpha = 0.0f;
-    			counter.alpha = 0.0f;
+    			counterBG.alpha = 0;
+    			counter.alpha = 0;
             }
         	completion:^(BOOL finished) {
 				[counterBG setHidden:YES];
 				[counter setText:@"000"];
         	}];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.3*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, .3*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
         	burst = NO;
         });
 		photoCount = 0;
@@ -85,29 +110,9 @@ static void cleanup()
 			[cont setFaceDetectionEnabled:YES];
 	});
 	noAutofocus = NO;
-	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.65*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
+	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, .65*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
 		disableIris = NO;
 	});
-}
-
-static void FrontFlashCleanup()
-{
-	if (hasFrontFlash && isFrontCamera) {
-		for (UIView *view in [UIApplication sharedApplication].keyWindow.subviews) {
-			if (view.tag == 9596) {
-				[UIView animateWithDuration:0.5f delay:0.0f options:0
-                animations:^{
-    				view.alpha = 0.0f;
-            	}
-        		completion:^(BOOL finished) {
-					[view removeFromSuperview];
-					[view release];
-					[[UIApplication sharedApplication] setBacklightLevel:previousBacklightLevel];
-					GSEventSetBacklightLevel(previousBacklightLevel);
-        		}];
-			}
-		}
-	}
 }
 
 static void BurstModeLoader()
@@ -123,12 +128,13 @@ static void BurstModeLoader()
 	readOption(@"LiveWellEnabled", LiveWell, NO)
 	readOption(@"AllowFlashEnabled", AllowFlash, NO)
 	readOption(@"AllowHDREnabled", AllowHDR, NO)
+	readOption(@"expFormat", expFormat, NO)
 	id PLC = [dict objectForKey:@"PhotoLimitCount"];
 	limitedPhotosCount = PLC ? [PLC intValue] : 0;
 	id HTValue = [dict objectForKey:@"HoldTime"];
-	HoldTime = HTValue ? [HTValue floatValue] : 1.2f;
+	HoldTime = HTValue ? [HTValue floatValue] : 1.2;
 	id IntervalValue = [dict objectForKey:@"Interval"];
-	Interval = IntervalValue ? [IntervalValue floatValue] : 0.8f;
+	Interval = IntervalValue ? [IntervalValue floatValue] : .8;
 }
 
 %hook PLCameraButton
@@ -137,10 +143,8 @@ static void BurstModeLoader()
 {
 	self = %orig;
 	if (self) {
-		if (BurstMode) {
-			[self addTarget:self action:@selector(sendPressed) forControlEvents:UIControlEventTouchDown];
-			[self addTarget:self action:@selector(sendReleased) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel | UIControlEventTouchDragExit];
-		}
+		[self addTarget:self action:@selector(sendPressed) forControlEvents:UIControlEventTouchDown];
+		[self addTarget:self action:@selector(sendReleased) forControlEvents:UIControlEventTouchUpInside | UIControlEventTouchUpOutside | UIControlEventTouchCancel | UIControlEventTouchDragExit];
 	}
 	return self;
 }
@@ -149,10 +153,8 @@ static void BurstModeLoader()
 - (void)sendPressed
 {
 	if (isPhotoCamera) {
-		if (BurstMode) {
-			BMHoldTimer = [NSTimer scheduledTimerWithTimeInterval:HoldTime target:self selector:@selector(burst) userInfo:nil repeats:NO];
-			[BMHoldTimer retain];
-		}
+		BMHoldTimer = [NSTimer scheduledTimerWithTimeInterval:HoldTime target:self selector:@selector(burst) userInfo:nil repeats:NO];
+		[BMHoldTimer retain];
 	}
 }
 
@@ -176,10 +178,9 @@ static void BurstModeLoader()
 		burst = YES;
 		[counter setHidden:NO];
 		[counterBG setHidden:NO];
-		counter.alpha = 1.0f;
-		counterBG.alpha = 0.4f;
-		if (hasFrontFlash)
-			previousBacklightLevel = [UIScreen mainScreen].brightness;
+		counter.alpha = 1;
+		counterBG.alpha = .4;
+		previousBacklightLevel = [UIScreen mainScreen].brightness;
 		disableIris = DisableIris;
 		[PLCameraView cancelPreviousPerformRequestsWithTarget:self selector:@selector(autofocus) object:nil];
 		if ([cont isFocusLockSupported] && noAutofocus)
@@ -202,13 +203,11 @@ static void BurstModeLoader()
 - (void)sendReleased
 {
 	if (isPhotoCamera) {
-		if (BurstMode) {
-			invalidateTimer();
-			ignoreCapture = burst;
-			cleanup();
-   			FrontFlashCleanup();
-    		hideCounter();
-    	}
+		invalidateTimer();
+		ignoreCapture = burst;
+		cleanup();
+   		FrontFlashCleanup();
+    	hideCounter();
 	}
 }
 
@@ -219,31 +218,24 @@ static void BurstModeLoader()
 - (void)_handleVolumeButtonUp
 {
 	%orig;
-	if (isPhotoCamera) {
-		if (BurstMode)
-			[(PLCameraButton *)[(PLCameraButtonBar *)self.bottomButtonBar cameraButton] sendActionsForControlEvents:UIControlEventTouchUpInside];
-	}
+	if (isPhotoCamera)
+		[(PLCameraButton *)[(PLCameraButtonBar *)self.bottomButtonBar cameraButton] sendActionsForControlEvents:UIControlEventTouchUpInside];
 }
 
 - (void)_handleVolumeButtonDown
 {
-	if (isPhotoCamera) {
-		if (BurstMode)
-			[(PLCameraButton *)[(PLCameraButtonBar *)self.bottomButtonBar cameraButton] sendActionsForControlEvents:UIControlEventTouchDown];
-		else
-			%orig;
-	} else
+	if (isPhotoCamera)
+		[(PLCameraButton *)[(PLCameraButtonBar *)self.bottomButtonBar cameraButton] sendActionsForControlEvents:UIControlEventTouchDown];
+	else
 		%orig;
 }
 
 - (void)_shutterButtonClicked
 {
-	if (BurstMode) {
-		if (isPhotoCamera) {
-			if (ignoreCapture) {
-				ignoreCapture = NO;
-				return;
-			}
+	if (isPhotoCamera) {
+		if (ignoreCapture) {
+			ignoreCapture = NO;
+			return;
 		}
 	}
 	%orig;
@@ -268,53 +260,43 @@ static void BurstModeLoader()
 - (void)viewDidAppear
 {
 	%orig;
-	if (BurstMode) {
-		if (!counter) {
-			counter = [[UILabel alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 60.0f, 20.0f)];
-			counter.text = @"000";
-			[counter setFont:[UIFont fontWithName:@"HelveticaNeue" size:20.0f]];
-			counter.textColor = [UIColor whiteColor];
-			counter.backgroundColor = [UIColor clearColor];
-			[counter setAutoresizingMask:2];
-			[counter setHidden:YES];
-		}
-		if (!counterBG) {
-			counterBG = [[UIView alloc] initWithFrame:CGRectMake(-28.0f, -48.0f, 56.0f, 56.0f)];
-			counterBG.alpha = 0.4f;
-			counterBG.backgroundColor = [UIColor blackColor];
-			counterBG.layer.cornerRadius = 28.0f;
-			[counterBG setHidden:YES];
-		}
-		UIView *textOverlayView = MSHookIvar<UIView *>(self, "_textOverlayView");
-		[counterBG addSubview:counter];
-		counter.center = CGPointMake(28.0f, 28.0f);
-		counter.textAlignment = UITextAlignmentCenter;
-		[textOverlayView addSubview:counterBG];
+	if (!counter) {
+		counter = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 60, 20)];
+		counter.text = @"000";
+		[counter setFont:[UIFont fontWithName:@"HelveticaNeue" size:20.0f]];
+		counter.textColor = [UIColor whiteColor];
+		counter.backgroundColor = [UIColor clearColor];
+		[counter setAutoresizingMask:2];
+		[counter setHidden:YES];
 	}
+	if (!counterBG) {
+		counterBG = [[UIView alloc] initWithFrame:CGRectMake(-28, -48, 56, 56)];
+		counterBG.alpha = .4;
+		counterBG.backgroundColor = [UIColor blackColor];
+		counterBG.layer.cornerRadius = 28;
+		[counterBG setHidden:YES];
+	}
+	UIView *textOverlayView = MSHookIvar<UIView *>(self, "_textOverlayView");
+	[counterBG addSubview:counter];
+	counter.center = CGPointMake(28, 28);
+	counter.textAlignment = UITextAlignmentCenter;
+	[textOverlayView addSubview:counterBG];
 }
 
 - (void)_setupAnimatePreviewDown:(id)down flipImage:(BOOL)image panoImage:(BOOL)image3 snapshotFrame:(CGRect)frame
 {
-	if (BurstMode) {
-		if (isPhotoCamera && !isCapturingVideo && burst) {
-			if (DisableAnim)
-				return;
-			%orig;
+	if (isPhotoCamera && !isCapturingVideo && burst) {
+		if (DisableAnim)
 			return;
-		}
 	}
 	%orig;
 }
 
 - (void)openIrisWithDidFinishSelector:(SEL)openIrisWith withDuration:(float)duration
 {
-	if (BurstMode) {
-		if (isPhotoCamera && DisableIris && disableIris && burst && !isCapturingVideo) {
-			[self hideStaticClosedIris];
-			[self takePictureOpenIrisAnimationFinished];
-			return;
-		}
-		%orig;
+	if (isPhotoCamera && DisableIris && disableIris && burst && !isCapturingVideo) {
+		[self hideStaticClosedIris];
+		[self takePictureOpenIrisAnimationFinished];
 		return;
 	}
 	%orig;
@@ -322,13 +304,9 @@ static void BurstModeLoader()
 
 - (void)closeIrisWithDidFinishSelector:(SEL)closeIrisWith withDuration:(float)duration
 {
-	if (BurstMode) {
-		if (isPhotoCamera && DisableIris && disableIris && burst && !isCapturingVideo) {
-			[self _clearFocusViews];
-			[self resumePreview];
-			return;
-		}
-		%orig;
+	if (isPhotoCamera && DisableIris && disableIris && burst && !isCapturingVideo) {
+		[self _clearFocusViews];
+		[self resumePreview];
 		return;
 	}
 	%orig;
@@ -338,53 +316,41 @@ static void BurstModeLoader()
 
 %hook PLCameraController
 
-- (void)_setCameraMode:(int)mode cameraDevice:(int)device
-{
-	isPhotoCamera = (mode == 0);
-	isBackCamera = (isPhotoCamera && device == 0);
-	isFrontCamera = (isPhotoCamera && device == 1);
-	%orig;
-}
-
 - (BOOL)isHDREnabled
 {
 	BOOL enabled = %orig;
-	if (BurstMode) {
-		if (isPhotoCamera) {
-			if (enabled)
-				counterBG.frame = CGRectMake(0.0f, -63.0f, 56.0f, 56.0f);
-			else
-				counterBG.frame = CGRectMake(-28.0f, -48.0f, 56.0f, 56.0f);
-		}
+	if (isPhotoCamera) {
+		if (enabled)
+			counterBG.frame = CGRectMake(0, -63, 56, 56);
+		else
+			counterBG.frame = CGRectMake(-28, -48, 56, 56);
 	}
 	return enabled;
 }
 
 - (void)capturePhoto
 {
-	if (BurstMode) {
-		if (isPhotoCamera) {
-			if (burst) {
-				photoCount++;
-				if (limitedPhotosCount > 0) {
-					if (photoCount == limitedPhotosCount)
-						invalidateTimer();
-				}
-				char cString[4];
-        		sprintf(cString, "%d", photoCount);
-				NSString *s = [[[NSString alloc] initWithUTF8String:cString] autorelease];
-				if (photoCount <= 9)
-					[counter setText:[@"00" stringByAppendingString:s]];
-				else if (photoCount >= 10 && photoCount <= 99)
-					[counter setText:[@"0" stringByAppendingString:s]];
-				else if (photoCount >= 100)
-					[counter setText:s];
-				if (DisableIris) {
-					if (LiveWell) {
-						NSMutableArray *imgArray = MSHookIvar<NSMutableArray *>([self delegate], "_previewWellImages");
-						if ([imgArray count] > 0)
-							[[self delegate] _updatePreviewWellImage:(UIImage *)[imgArray lastObject]];
-					}
+	if (isPhotoCamera) {
+		if (burst) {
+			photoCount++;
+			if (limitedPhotosCount > 0) {
+				if (photoCount == limitedPhotosCount)
+					invalidateTimer();
+			}
+			char cString[4];
+        	sprintf(cString, "%d", photoCount);
+			NSString *s = [[[NSString alloc] initWithUTF8String:cString] autorelease];
+			if (photoCount <= 9)
+				[counter setText:[@"00" stringByAppendingString:s]];
+			else if (photoCount >= 10 && photoCount <= 99)
+				[counter setText:[@"0" stringByAppendingString:s]];
+			else if (photoCount >= 100)
+				[counter setText:s];
+			if (DisableIris) {
+				if (LiveWell) {
+					NSMutableArray *imgArray = MSHookIvar<NSMutableArray *>([self delegate], "_previewWellImages");
+					if ([imgArray count] > 0)
+						[[self delegate] _updatePreviewWellImage:(UIImage *)[imgArray lastObject]];
 				}
 			}
 		}
@@ -394,41 +360,36 @@ static void BurstModeLoader()
 
 - (void)autofocus
 {
-	if (BurstMode) {
-		if (isPhotoCamera) {
-			if (noAutofocus && burst)
-				return;
-		}
+	if (isPhotoCamera) {
+		if (noAutofocus && burst)
+			return;
 	}
 	%orig;
 }
 
 - (void)_autofocus:(BOOL)focus autoExpose:(BOOL)expose
 {
-	if (BurstMode) {
-		if (isPhotoCamera) {
-			if (noAutofocus && burst)
-				return;
-		}
+	if (isPhotoCamera) {
+		if (noAutofocus && burst)
+			return;
 	}
 	%orig;
 }
 
 %end
 
-static void PostNotification(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
-{
-	BurstModeLoader();
-}
-
 %end
 
 %group iOS7
 
-/*%hook CAMAvalancheIndicatorView
+%hook CAMAvalancheIndicatorView
 
 - (void)_updateCountLabelWithNumberOfPhotos
 {
+	if (!expFormat) {
+		%orig;
+		return;
+	}
 	int photoCount = MSHookIvar<int>(self, "__numberOfPhotos");
 	UILabel *label = MSHookIvar<UILabel *>(self, "__countLabel");
 	char cString[4];
@@ -442,7 +403,85 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 		[label setText:s];
 }
 
-%end*/
+%end
+
+%hook CAMAvalancheSession
+
+%new
+- (void)fakeSetNum:(unsigned)fake
+{
+	MSHookIvar<unsigned>(self, "_numberOfPhotos") = fake;
+}
+
+%end
+
+%hook PLCameraView
+
+static BOOL hook7 = NO;
+
+- (void)_updateHDR:(int)mode
+{
+	%orig(hook7 && [self HDRIsOn] && AllowHDR ? 1 : mode);
+}
+
+- (void)_updateFlashMode:(int)mode
+{
+	%orig(hook7 && self.flashMode == 1 && AllowFlash ? 1 : mode);
+}
+
+- (void)_captureTimerFired
+{
+	hook7 = YES;
+	unsigned orig = self._avalancheSession.numberOfPhotos;
+	if (limitedPhotosCount > 0) {
+		if (orig == limitedPhotosCount)
+			return;
+	}
+	if (self._avalancheSession.numberOfPhotos > 997)
+		[self._avalancheSession fakeSetNum:1];
+	%orig;
+	[self._avalancheSession fakeSetNum:orig];
+	hook7 = NO;
+}
+
+- (void)_beginTimedCapture
+{
+	previousBacklightLevel = [UIScreen mainScreen].brightness;
+	%orig;
+}
+
+- (void)_completeTimedCapture
+{
+	hook7 = YES;
+	%orig;
+	hook7 = NO;
+	FrontFlashCleanup();
+}
+
+/*- (double)_timeIntervalOfTouchDown
+{
+	return 5;
+}
+
+- (void)cameraShutterPressed:(id)pressed
+{
+	MSHookIvar<double>(self, "__timeIntervalOfTouchDown") = 5;
+	%orig;
+}
+
+- (void)cameraShutterCancelled:(id)cancelled
+{
+	MSHookIvar<double>(self, "__timeIntervalOfTouchDown") = 5;
+	%orig;
+}
+
+- (void)cameraShutterReleased:(id)released
+{
+	MSHookIvar<double>(self, "__timeIntervalOfTouchDown") = 5;
+	%orig;
+}*/
+
+%end
 
 %hook CAMCameraSpec
 
@@ -465,9 +504,41 @@ Boolean replaced_MGGetBoolAnswer(CFStringRef string)
 
 %end
 
+%group Common
+
+%hook PLCameraController
+
+- (void)_setCameraMode:(int)mode cameraDevice:(int)device
+{
+	isPhotoCamera = (mode == 0);
+	isBackCamera = (isPhotoCamera && device == 0);
+	isFrontCamera = (isPhotoCamera && device == 1);
+	%orig;
+}
+
+%end
+
+%end
+
+static void PostNotification(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
+{
+	system("killall Camera");
+	BurstModeLoader();
+}
 
 %ctor {
 	NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+	CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("com.PS.BurstMode.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
+	BurstModeLoader();
+	if (!BurstMode) {
+		[pool drain];
+		return;
+	}
+	hasFrontFlash = NO;
+	void *openFrontFlash = dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY);
+	if (openFrontFlash != NULL)
+		hasFrontFlash = YES;
+	%init(Common);
 	if (isiOS7) {
 		MSHookFunction(((BOOL *)MSFindSymbol(NULL, "_MGGetBoolAnswer")), (BOOL *)replaced_MGGetBoolAnswer, (BOOL **)&old_MGGetBoolAnswer);
 		%init(iOS7);
@@ -477,12 +548,6 @@ Boolean replaced_MGGetBoolAnswer(CFStringRef string)
 			[pool drain];
 			return;
 		}
-		hasFrontFlash = NO;
-		void *openFrontFlash = dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY);
-		if (openFrontFlash != NULL)
-			hasFrontFlash = YES;
-		CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, PostNotification, CFSTR("com.PS.BurstMode.settingschanged"), NULL, CFNotificationSuspensionBehaviorCoalesce);
-		BurstModeLoader();
 		%init(iOS6);
 	}
 	[pool drain];

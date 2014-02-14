@@ -15,14 +15,6 @@
     </dict>
     <key>items</key>
     <array>
-    <dict>
-      	<key>cell</key>
-      	<string>PSGroupCell</string>
-      	<key>label</key>
-        <string>Burst Mode</string>
-        <key>id</key>
-        <string>first</string>
-      </dict>
       <dict>
         <key>cell</key>
         <string>PSSwitchCell</string>
@@ -239,6 +231,22 @@
         <key>PostNotification</key>
         <string>com.PS.BurstMode.settingschanged</string>
       </dict>
+      <dict>
+        <key>cell</key>
+        <string>PSSwitchCell</string>
+        <key>default</key>
+        <false/>
+        <key>defaults</key>
+        <string>com.PS.BurstMode</string>
+        <key>key</key>
+        <string>expFormat</string>
+        <key>id</key>
+		<string>expFormat</string>
+        <key>label</key>
+        <string>No 999 Limit (Experimental)</string>
+        <key>PostNotification</key>
+        <string>com.PS.BurstMode.settingschanged</string>
+      </dict>
 		<dict>
         <key>cell</key>
         <string>PSGroupCell</string>
@@ -248,23 +256,23 @@
         <string>Burst Mode always keep the original photo resolution, the best you can get from this is the best of your iDevice can handle with.
 
 • Photos Limit Count - Limit your continuously photos count, 0 or unset for unlimited photos count.
-• Hold Time Delay - Delay before capturing continuously photos.
-• Burst Mode Interval - Adjust delay for Burst mode in seconds (0.0 to 6.0)
-iPhone 4S iOS 6.1.2 (8MP Camera) recommended interval (Fastest and Safe) is around 0.2 to 0.3 s
+• (iOS 5, 6) Hold Time Delay - Delay before capturing continuously photos.
+• (iOS 5, 6) Burst Mode Interval - Adjust delay for Burst mode in seconds (0.0 to 6.0)
 
-• Safe - Continue taking photo only if the previous photo is written in the photo album, is very recommended to enable this by default, or you may face non-stop photo capturing bug if your iDevice is lag somehow.
+• (iOS 5, 6) Safe - Continue taking photo only if the previous photo is written in the photo album, is very recommended to enable this by default, or you may face non-stop photo capturing bug if your iDevice is lag somehow.
 Less interval are not recommended with "Safe" option disabled.
 This option is very recommended for "Flash Burst", "HDR Burst" and more than 5MP Camera also with "Safe" option enabled because they both take some time for one photo capturing.
 
-• Disable Iris Animation - Useful when user takes photo continuously and iris animation is useless. (Enabling this makes burst photo capture faster)
-• Disable Preview Animation - Disable the animation when captured image is moving to the album preview at bottom-left. (Enabling this makes burst photo capture faster)
-• Live Preview Well - Live update for preview image in the album at bottom-left of screen, you will need this only if "Disable Iris Animation" is enabled.
+• (iOS 5, 6) Disable Iris Animation - Useful when user takes photo continuously and iris animation is useless. (Enabling this makes burst photo capture faster)
+• (iOS 5, 6) Disable Preview Animation - Disable the animation when captured image is moving to the album preview at bottom-left. (Enabling this makes burst photo capture faster)
+• (iOS 5, 6) Live Preview Well - Live update for preview image in the album at bottom-left of screen, you will need this only if "Disable Iris Animation" is enabled.
 • Flash Burst - Burst mode with Flash (if Flash mode is on)
 • HDR Burst - Burst mode with HDR (if HDR is on)
+• (iOS 7) No 999 Limit - Implementing a new code for adding photos count onto the indicator, which remove that limit. (The Photos Limit Count option must be unset or set to 0 too)
 
 When you hold down camare button or volume button, the count down timer before burst will start, when the timer fired, Burst Mode will temporary disable Focus, Auto focus, HDR (if HDR Burst is disabled), Flash (if Flash Burst is disabled), Iris animation (if Disable Iris Animation is enabled), Preview animation (if Disable Preview Animation is enabled) and Face Detection then start taking continuously photos, the photos counter will be visible at bottom-middle, everything will become the rest when you release camera button or volume button.
 
-Burst Mode will override the volume buttons function when it's enabled, by adding the delay (= Burst Mode interval + a little amount) before taking a single photo to make Burst Mode works normally.
+(iOS 5, 6) Burst Mode will override the volume buttons function when it's enabled, by adding the delay (= Burst Mode interval + a little amount) before taking a single photo to make Burst Mode works normally.
 
 © 2013 - 2014 Thuchapol Unprasert
 (@PoomSmart)</string>

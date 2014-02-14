@@ -10,11 +10,20 @@
 @property(retain, nonatomic) PLCameraButton* cameraButton;
 @end
 
+@interface CAMAvalancheSession
+@property(readonly, assign, nonatomic) unsigned numberOfPhotos;
+@end
+
+@interface CAMAvalancheSession (BurstMode)
+- (void)fakeSetNum:(unsigned)fake;
+@end
+
 @interface PLCameraView : UIView
+@property(assign, nonatomic) int flashMode;
+@property(assign, nonatomic) BOOL HDRIsOn;
 @property(retain, nonatomic) UIToolbar* bottomButtonBar;
 - (BOOL)hasInFlightCaptures;
 - (void)_shutterButtonClicked;
-- (void)setHDRIsOn:(BOOL)on;
 - (void)resumePreview;
 - (void)_setShouldShowFocus:(BOOL)focus;
 - (void)hideStaticClosedIris;
@@ -25,6 +34,10 @@
 - (void)_setBottomBarEnabled:(BOOL)enabled;
 - (void)setCameraButtonsEnabled:(BOOL)enabled;
 - (void)takePictureOpenIrisAnimationFinished;
+@end
+
+@interface PLCameraView (iOS7)
+@property(readonly, assign, nonatomic) CAMAvalancheSession* _avalancheSession;
 @end
 
 @interface PLCameraButton (BurstMode)
