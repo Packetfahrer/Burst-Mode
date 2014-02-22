@@ -4,10 +4,13 @@ static BOOL BurstMode;
 static BOOL AllowFlash;
 static BOOL AllowHDR;
 static BOOL expFormat;
+static BOOL Fast7;
+static BOOL animInd;
+
 static BOOL hasFrontFlash = NO;
 static BOOL isFrontCamera = NO;
-static unsigned int limitedPhotosCount;
 
+static unsigned int limitedPhotosCount;
 static float previousBacklightLevel;
 
 static void FrontFlashCleanup()
@@ -129,6 +132,8 @@ static void BurstModeLoader()
 	readOption(@"AllowFlashEnabled", AllowFlash, NO)
 	readOption(@"AllowHDREnabled", AllowHDR, NO)
 	readOption(@"expFormat", expFormat, NO)
+	readOption(@"Fast7", Fast7, NO)
+	readOption(@"AnimInd", animInd, NO)
 	id PLC = [dict objectForKey:@"PhotoLimitCount"];
 	limitedPhotosCount = PLC ? [PLC intValue] : 0;
 	id HTValue = [dict objectForKey:@"HoldTime"];
@@ -403,6 +408,11 @@ static void BurstModeLoader()
 		[label setText:s];
 }
 
+- (void)incrementWithCaptureAnimation:(BOOL)animated
+{
+	%orig(animInd ? NO : animated);
+}
+
 %end
 
 %hook CAMAvalancheSession
@@ -431,12 +441,16 @@ static BOOL hook7 = NO;
 
 - (void)_captureTimerFired
 {
-	hook7 = YES;
 	unsigned orig = self._avalancheSession.numberOfPhotos;
 	if (limitedPhotosCount > 0) {
 		if (orig == limitedPhotosCount)
 			return;
 	}
+	if (!expFormat) {
+		%orig;
+		return;
+	}
+	hook7 = YES;
 	if (self._avalancheSession.numberOfPhotos > 997)
 		[self._avalancheSession fakeSetNum:1];
 	%orig;
@@ -504,6 +518,56 @@ Boolean replaced_MGGetBoolAnswer(CFStringRef string)
 
 %end
 
+%group Fast7
+
+%hook CAMAvalancheSession
+
+- (void)_setState:(int)state
+{
+	MSHookIvar<int>(self, "_state") = state;
+	[self _didTransitionToState:state];
+}
+
+%end
+
+%hook PLCameraController
+
+- (void)continueTimedCapture
+{
+	if (![self performingTimedCapture])
+		return;
+	[MSHookIvar<AVCaptureStillImageOutput *>(self, "_avCaptureOutputPhoto") setShutterSound:0];
+}
+
+%end
+
+%hook PLCameraView
+
+- (void)_extendAvalancheSession
+{
+	if ([self._avalancheSession extend])
+		return;
+	[self _finalizeAndBeginNewAvalancheSession];
+}
+
+- (void)_finalizeExistingAvalancheSession
+{
+	[[self _avalancheIndicator] reset];
+	[self._avalancheSession finalizeWithAnalysis:YES];
+	[self._avalancheSession release];
+}
+
+- (void)_ensureValidAvalancheSession
+{
+	if (self._avalancheSession.state > 1)
+		return;
+	[self _finalizeAndBeginNewAvalancheSession];
+}
+
+%end
+
+%end
+
 %group Common
 
 %hook PLCameraController
@@ -541,6 +605,9 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 	%init(Common);
 	if (isiOS7) {
 		MSHookFunction(((BOOL *)MSFindSymbol(NULL, "_MGGetBoolAnswer")), (BOOL *)replaced_MGGetBoolAnswer, (BOOL **)&old_MGGetBoolAnswer);
+		if (Fast7) {
+			%init(Fast7);
+		}
 		%init(iOS7);
 	}
 	else {

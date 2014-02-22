@@ -247,6 +247,38 @@
         <key>PostNotification</key>
         <string>com.PS.BurstMode.settingschanged</string>
       </dict>
+      <dict>
+        <key>cell</key>
+        <string>PSSwitchCell</string>
+        <key>default</key>
+        <false/>
+        <key>defaults</key>
+        <string>com.PS.BurstMode</string>
+        <key>key</key>
+        <string>Fast7</string>
+        <key>id</key>
+		<string>Fast7</string>
+        <key>label</key>
+        <string>Faster Code</string>
+        <key>PostNotification</key>
+        <string>com.PS.BurstMode.settingschanged</string>
+      </dict>
+      <dict>
+        <key>cell</key>
+        <string>PSSwitchCell</string>
+        <key>default</key>
+        <false/>
+        <key>defaults</key>
+        <string>com.PS.BurstMode</string>
+        <key>key</key>
+        <string>AnimInd</string>
+        <key>id</key>
+		<string>AnimInd</string>
+        <key>label</key>
+        <string>No Counter Animation</string>
+        <key>PostNotification</key>
+        <string>com.PS.BurstMode.settingschanged</string>
+      </dict>
 		<dict>
         <key>cell</key>
         <string>PSGroupCell</string>
@@ -269,6 +301,8 @@ This option is very recommended for "Flash Burst", "HDR Burst" and more than 5MP
 • Flash Burst - Burst mode with Flash (if Flash mode is on)
 • HDR Burst - Burst mode with HDR (if HDR is on)
 • (iOS 7) No 999 Limit - Implementing a new code for adding photos count onto the indicator, which remove that limit. (The Photos Limit Count option must be unset or set to 0 too)
+• (iOS 7) Faster Code - Reducing some code related with burst mode capture, to slightly improve performance.
+• (iOS 7) No Counter Animation - Disable the "flashing" animation of the photo count indicator.
 
 When you hold down camare button or volume button, the count down timer before burst will start, when the timer fired, Burst Mode will temporary disable Focus, Auto focus, HDR (if HDR Burst is disabled), Flash (if Flash Burst is disabled), Iris animation (if Disable Iris Animation is enabled), Preview animation (if Disable Preview Animation is enabled) and Face Detection then start taking continuously photos, the photos counter will be visible at bottom-middle, everything will become the rest when you release camera button or volume button.
 

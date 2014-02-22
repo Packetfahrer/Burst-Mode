@@ -1,4 +1,5 @@
 #import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
 
 #define isiOS7 (kCFCoreFoundationVersionNumber > 793.00)
 #define IPAD (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
@@ -10,8 +11,12 @@
 @property(retain, nonatomic) PLCameraButton* cameraButton;
 @end
 
-@interface CAMAvalancheSession
+@interface CAMAvalancheSession : NSObject
 @property(readonly, assign, nonatomic) unsigned numberOfPhotos;
+@property(assign, nonatomic) int state;
+- (BOOL)extend;
+- (void)finalizeWithAnalysis:(BOOL)arg;
+- (void)_didTransitionToState:(int)state;
 @end
 
 @interface CAMAvalancheSession (BurstMode)
@@ -36,8 +41,14 @@
 - (void)takePictureOpenIrisAnimationFinished;
 @end
 
+@interface CAMAvalancheIndicatorView : UIView
+- (void)reset;
+@end
+
 @interface PLCameraView (iOS7)
 @property(readonly, assign, nonatomic) CAMAvalancheSession* _avalancheSession;
+@property(readonly, assign, nonatomic) CAMAvalancheIndicatorView *_avalancheIndicator;
+- (void)_finalizeAndBeginNewAvalancheSession;
 @end
 
 @interface PLCameraButton (BurstMode)
@@ -56,6 +67,10 @@
 - (void)_lockFocus:(BOOL)focus lockExposure:(BOOL)exposure lockWhiteBalance:(BOOL)whiteBalance;
 @end
 
+@interface PLCameraController (iOS7)
+- (BOOL)performingTimedCapture;
+@end
+
 @interface UIApplication (FrontFlash)
 - (void)setBacklightLevel:(float)level;
 @end
@@ -65,4 +80,8 @@
 
 @interface PUPhotoBrowserController
 - (id)_toolbarButtonForIdentifier:(NSString *)ident;
+@end
+
+@interface AVCaptureStillImageOutput (Addition)
+- (void)setShutterSound:(unsigned long)soundID;
 @end

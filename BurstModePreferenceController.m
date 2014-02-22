@@ -34,6 +34,8 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 @property (nonatomic, retain) PSSpecifier *allowFlashSpec;
 @property (nonatomic, retain) PSSpecifier *allowHDRSpec;
 @property (nonatomic, retain) PSSpecifier *expFormatSpec;
+@property (nonatomic, retain) PSSpecifier *Fast7Spec;
+@property (nonatomic, retain) PSSpecifier *animIndSpec;
 @property (nonatomic, retain) PSSpecifier *descriptionSpec;
 @end
 
@@ -79,7 +81,9 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 		AddSpecBeforeSpec(self.allowFlashSpec, @"Misc")
 		AddSpecBeforeSpec(self.allowHDRSpec, @"AllowFlash")
 		AddSpecBeforeSpec(self.expFormatSpec, @"AllowHDR")
-		AddSpecBeforeSpec(self.descriptionSpec, @"expFormat")
+		AddSpecBeforeSpec(self.Fast7Spec, @"expFormat")
+		AddSpecBeforeSpec(self.animIndSpec, @"Fast7")
+		AddSpecBeforeSpec(self.descriptionSpec, @"AnimInd")
 	} else {
 		AddSpecBeforeSpec(self.spaceSpec, @"PLC")
 		AddSpecBeforeSpec(self.holdTimeSliderSpec, @"Space")
@@ -127,7 +131,7 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
 	if (_specifiers == nil) {
 		NSMutableArray *specs = [NSMutableArray arrayWithArray:[self loadSpecifiersFromPlistName:@"BurstMode" target:self]];
 		LoadPlist
-		
+
 		for (PSSpecifier *spec in specs) {
 			if ([Id isEqualToString:@"BurstMode"])
                 self.burstModeSpec = spec;
@@ -155,8 +159,12 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
                 self.allowFlashSpec = spec;
             if ([Id isEqualToString:@"AllowHDR"])
                 self.allowHDRSpec = spec;
-             if ([Id isEqualToString:@"expFormat"])
+			if ([Id isEqualToString:@"expFormat"])
                 self.expFormatSpec = spec;
+            if ([Id isEqualToString:@"Fast7"])
+                self.Fast7Spec = spec;
+            if ([Id isEqualToString:@"AnimInd"])
+                self.animIndSpec = spec;
             if ([Id isEqualToString:@"Description"])
             	self.descriptionSpec = spec;
         	}
@@ -180,6 +188,8 @@ else if ([self specifierForID:spec.identifier] && ![value boolValue]) \
         		[specs removeObject:self.allowFlashSpec];
         		[specs removeObject:self.allowHDRSpec];
         		[specs removeObject:self.expFormatSpec];
+        		[specs removeObject:self.Fast7Spec];
+        		[specs removeObject:self.animIndSpec];
        			[specs removeObject:self.descriptionSpec];
        		}
        		
