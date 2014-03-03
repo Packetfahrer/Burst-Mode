@@ -74,8 +74,8 @@ static void hideCounter()
     			counter.alpha = 0;
             }
         	completion:^(BOOL finished) {
-				[counterBG setHidden:YES];
-				[counter setText:@"000"];
+				counterBG.hidden = YES;
+				counter.text = @"000";
         	}];
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, .3*NSEC_PER_SEC), dispatch_get_main_queue(), ^(void){
         	burst = NO;
@@ -181,8 +181,8 @@ static void BurstModeLoader()
 			return;
 		noAutofocus = YES;
 		burst = YES;
-		[counter setHidden:NO];
-		[counterBG setHidden:NO];
+		counter.hidden = NO;
+		counterBG.hidden = NO;
 		counter.alpha = 1;
 		counterBG.alpha = .4;
 		previousBacklightLevel = [UIScreen mainScreen].brightness;
@@ -268,18 +268,18 @@ static void BurstModeLoader()
 	if (!counter) {
 		counter = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 60, 20)];
 		counter.text = @"000";
-		[counter setFont:[UIFont fontWithName:@"HelveticaNeue" size:20.0f]];
+		[counter setFont:[UIFont fontWithName:@"HelveticaNeue" size:20]];
 		counter.textColor = [UIColor whiteColor];
 		counter.backgroundColor = [UIColor clearColor];
-		[counter setAutoresizingMask:2];
-		[counter setHidden:YES];
+		counter.autoresizingMask = 2;
+		counter.hidden = YES;
 	}
 	if (!counterBG) {
 		counterBG = [[UIView alloc] initWithFrame:CGRectMake(-28, -48, 56, 56)];
 		counterBG.alpha = .4;
 		counterBG.backgroundColor = [UIColor blackColor];
 		counterBG.layer.cornerRadius = 28;
-		[counterBG setHidden:YES];
+		counterBG.hidden = YES;
 	}
 	UIView *textOverlayView = MSHookIvar<UIView *>(self, "_textOverlayView");
 	[counterBG addSubview:counter];
@@ -446,15 +446,12 @@ static BOOL hook7 = NO;
 		if (orig == limitedPhotosCount)
 			return;
 	}
-	if (!expFormat) {
-		%orig;
-		return;
-	}
 	hook7 = YES;
-	if (self._avalancheSession.numberOfPhotos > 997)
+	if (expFormat && self._avalancheSession.numberOfPhotos > 997)
 		[self._avalancheSession fakeSetNum:1];
 	%orig;
-	[self._avalancheSession fakeSetNum:orig];
+	if (expFormat)
+		[self._avalancheSession fakeSetNum:orig];
 	hook7 = NO;
 }
 
@@ -471,29 +468,6 @@ static BOOL hook7 = NO;
 	hook7 = NO;
 	FrontFlashCleanup();
 }
-
-/*- (double)_timeIntervalOfTouchDown
-{
-	return 5;
-}
-
-- (void)cameraShutterPressed:(id)pressed
-{
-	MSHookIvar<double>(self, "__timeIntervalOfTouchDown") = 5;
-	%orig;
-}
-
-- (void)cameraShutterCancelled:(id)cancelled
-{
-	MSHookIvar<double>(self, "__timeIntervalOfTouchDown") = 5;
-	%orig;
-}
-
-- (void)cameraShutterReleased:(id)released
-{
-	MSHookIvar<double>(self, "__timeIntervalOfTouchDown") = 5;
-	%orig;
-}*/
 
 %end
 
