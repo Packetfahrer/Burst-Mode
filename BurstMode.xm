@@ -439,6 +439,25 @@ static BOOL hook7 = NO;
 	%orig(hook7 && self.flashMode == 1 && AllowFlash ? 1 : mode);
 }
 
+/*- (void)_setupCaptureTimer
+{
+	dispatch_source_t captureTimer = MSHookIvar<dispatch_source_t>(self, "__captureTimer");
+	if (captureTimer != nil)
+		[self _teardownCaptureTimer];
+	dispatch_queue_t timedCaptureQueue = MSHookIvar<dispatch_queue_t>(self, "__timedCaptureQueue");
+	if (timedCaptureQueue == nil) {
+		dispatch_queue_t global = dispatch_get_global_queue(0x2, 0x0);
+		dispatch_retain(global);
+		timedCaptureQueue = global;
+	}
+	captureTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0x0, 0x0, timedCaptureQueue);
+	dispatch_source_set_timer(captureTimer, dispatch_time(0x0, 0x0), 0x0, 1);
+	dispatch_source_set_event_handler(captureTimer, nil);
+	[self _captureTimerFired];
+	%orig;
+	dispatch_source_set_timer(MSHookIvar<dispatch_source_t>(self, "__captureTimer"), dispatch_time(0x0, 5), 10000, 10000);
+}*/
+
 - (void)_captureTimerFired
 {
 	unsigned orig = self._avalancheSession.numberOfPhotos;
@@ -447,11 +466,15 @@ static BOOL hook7 = NO;
 			return;
 	}
 	hook7 = YES;
-	if (expFormat && self._avalancheSession.numberOfPhotos > 997)
-		[self._avalancheSession fakeSetNum:1];
-	%orig;
-	if (expFormat)
-		[self._avalancheSession fakeSetNum:orig];
+	if (expFormat) {
+		if (self._avalancheSession.numberOfPhotos > 997) {
+			[self._avalancheSession fakeSetNum:1];
+			%orig;
+			[self._avalancheSession fakeSetNum:orig];
+		} else
+			%orig;
+	} else
+		%orig;
 	hook7 = NO;
 }
 
@@ -504,13 +527,45 @@ Boolean replaced_MGGetBoolAnswer(CFStringRef string)
 
 %end
 
+%hook CAMAvalancheIndicatorView
+
+- (void)_updateCountLabelWithNumberOfPhotos
+{
+	if (!expFormat) {
+		int photoCount = MSHookIvar<int>(self, "__numberOfPhotos");
+		UILabel *label = MSHookIvar<UILabel *>(self, "__countLabel");
+		char cString[4];
+		sprintf(cString, "%03ld", (long)photoCount);
+		NSString *s = [[[NSString alloc] initWithUTF8String:cString] autorelease];
+		[label setText:s];
+		return;
+	}
+	%orig;
+}
+
+%end
+
 %hook PLCameraController
+
+- (void)startTimedCapture
+{
+	%orig;
+	if ([self.currentDevice isFaceDetectionSupported])
+		[self setFaceDetectionEnabled:NO];
+}
 
 - (void)continueTimedCapture
 {
 	if (![self performingTimedCapture])
 		return;
 	[MSHookIvar<AVCaptureStillImageOutput *>(self, "_avCaptureOutputPhoto") setShutterSound:0];
+}
+
+- (void)finishTimedCapture
+{
+	%orig;
+	if ([self.currentDevice isFaceDetectionSupported])
+		[self setFaceDetectionEnabled:YES];
 }
 
 %end
@@ -560,7 +615,7 @@ Boolean replaced_MGGetBoolAnswer(CFStringRef string)
 
 static void PostNotification(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo)
 {
-	system("killall Camera");
+	system("killall Camera MobileSlideShow");
 	BurstModeLoader();
 }
 
@@ -572,10 +627,7 @@ static void PostNotification(CFNotificationCenterRef center, void *observer, CFS
 		[pool drain];
 		return;
 	}
-	hasFrontFlash = NO;
-	void *openFrontFlash = dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY);
-	if (openFrontFlash != NULL)
-		hasFrontFlash = YES;
+	hasFrontFlash = (dlopen("/Library/MobileSubstrate/DynamicLibraries/FrontFlash.dylib", RTLD_LAZY | RTLD_NOLOAD) != NULL);
 	%init(Common);
 	if (isiOS7) {
 		MSHookFunction(((BOOL *)MSFindSymbol(NULL, "_MGGetBoolAnswer")), (BOOL *)replaced_MGGetBoolAnswer, (BOOL **)&old_MGGetBoolAnswer);
