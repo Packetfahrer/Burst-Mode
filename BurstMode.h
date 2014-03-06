@@ -58,6 +58,7 @@
 
 @interface PLCameraController : NSObject
 @property(assign, nonatomic, getter=isHDREnabled) BOOL HDREnabled;
+@property(assign, nonatomic) AVCaptureDevice *currentDevice;
 + (id)sharedInstance;
 - (PLCameraView *)delegate;
 - (BOOL)isCapturingVideo;
@@ -84,4 +85,8 @@
 
 @interface AVCaptureStillImageOutput (Addition)
 - (void)setShutterSound:(unsigned long)soundID;
+@end
+
+@interface AVCaptureDevice (Addition)
+- (BOOL)isFaceDetectionSupported;
 @end
